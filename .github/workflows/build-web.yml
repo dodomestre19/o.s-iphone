@@ -1,0 +1,86 @@
+name: Publicar PWA (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # Coloca o main.dart dentro da pasta lib/ (caso tenha sido enviado na raiz)
+      - name: Organizar arquivos
+        run: |
+          mkdir -p lib
+          if [ -f main.dart ]; then mv main.dart lib/main.dart; fi
+
+      # Gera a pasta web/ automaticamente
+      - name: Gerar estrutura web
+        run: flutter create --platforms=web --org br.com.atendimento --project-name relatorio_atendimento .
+
+      - name: Ícones, nome e manifest do app
+        run: |
+          cp web_icons/Icon-192.png web/icons/Icon-192.png
+          cp web_icons/Icon-512.png web/icons/Icon-512.png
+          cp web_icons/Icon-maskable-192.png web/icons/Icon-maskable-192.png
+          cp web_icons/Icon-maskable-512.png web/icons/Icon-maskable-512.png
+          cp web_icons/favicon.png web/favicon.png
+          sed -i 's|<title>[^<]*</title>|<title>Atendimento OS</title>|' web/index.html
+          sed -i 's|name="apple-mobile-web-app-title" content="[^"]*"|name="apple-mobile-web-app-title" content="Atendimento OS"|' web/index.html
+          cat > web/manifest.json <<'MANIFEST'
+          {
+            "name": "Atendimento OS",
+            "short_name": "Atendimento OS",
+            "description": "Relatório de atendimento técnico com base em Excel e assinatura na tela.",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#3F51B5",
+            "theme_color": "#3F51B5",
+            "prefer_related_applications": false,
+            "icons": [
+              { "src": "icons/Icon-192.png", "sizes": "192x192", "type": "image/png" },
+              { "src": "icons/Icon-512.png", "sizes": "512x512", "type": "image/png" },
+              { "src": "icons/Icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+              { "src": "icons/Icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+            ]
+          }
+          MANIFEST
+
+      - name: Dependências
+        run: flutter pub get
+
+      - name: Build web
+        run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
