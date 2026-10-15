@@ -1,0 +1,27 @@
+name: relatorio_atendimento
+description: Relatório de atendimento técnico com base em Excel e assinatura na tela.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  excel: ^4.0.6
+  file_picker: ^10.3.10
+  signature: ^5.5.0
+  pdf: ^3.11.1
+  share_plus: ^10.1.4
+  path_provider: ^2.1.5
+  shared_preferences: ^2.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/header.png
